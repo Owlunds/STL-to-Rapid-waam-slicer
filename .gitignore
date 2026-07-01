@@ -3,4 +3,6 @@ __pycache__/
 *.pyc
 
 # Ignore .mod files only in the root directory
-/*.mod
+*.mod
+
+/FUsionshieldtest.txt
