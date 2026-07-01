@@ -5,4 +5,7 @@ __pycache__/
 # Ignore .mod files only in the root directory
 *.mod
 
+#Ignore example rapid code
 /FUsionshieldtest.txt
+
+

@@ -1,0 +1,33 @@
+
+
+STL Files\topo shelf v1.stl
+    -topo shelf
+
+STL Files\WAAM Test V1.stl
+    -76.2 x 76.2 x 25.4 mm
+    -cylinder
+
+STL Files\WAAM Test v2.stl
+    -100 x 100 x 100 mm
+    -cube
+
+STL Files\WAAM test v3.stl
+    -100 x 100 x 100 mm
+    -cube missing center
+
+STL Files\WAAM test v4.stl
+    -100 x 100 x 100 mm
+    -cube missing center and chamfered sides
+
+STL Files\WAAM test v5.stl
+    -irregualr size
+    -st thomas sheild
+
+STL Files\WAAM test v6.stl
+    -100 x 100 x 100 mm
+    -cube missing center 25 x 25 x 25 mm
+
+STL Files\WAAM test v7.stl
+    -200 x 100 x 100 mm
+    -rectanular prisum missing two centers both 25 x 25 x 25 mm
+

@@ -102,13 +102,10 @@ def wall_generation(section, pass_num,offset_num, layer_height, bead_width, Test
     polygon = section.polygons_full[0]
     offset_distance = (bead_width / 2) + ((offset_num - 1) * bead_width)
 
-    offset_polygon = polygon.buffer(
-        -offset_distance,
-        join_style=JOIN_STYLE.mitre
-    )
+    offset_polygon = polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
 
     if offset_polygon.is_empty:
-        return None, None
+        return None
 
     polygons = []
     if offset_polygon.geom_type == "Polygon":
@@ -238,21 +235,15 @@ def wall_generation(section, pass_num,offset_num, layer_height, bead_width, Test
 
 def infill_lines(offset_polygon, settings):
 
-    polygon = offset_polygon.polygons_full[0]
-    offset_distance = (settings["bead_width"]/ 2)
-
-    offset_polygon = polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
-
-    if offset_polygon.is_empty:
-        return None, None
-
-    polygons = []
-    if offset_polygon.geom_type == "Polygon":
-        polygons = [offset_polygon]
-    else:
-        polygons = list(offset_polygon.geoms)
-        
-    print(f"Infill offset ")
+    coords = np.array(offset_polygon.exterior.coords)
+    centroid_x = offset_polygon.centroid.x
+    pass_offset = settings["bead_width"]/2
+    
+    # Push points outward from the X center
+    # If a point is right of center, add distance. If left, subtract.
+    print(f"cords of vertexes prior to offset {coords}")
+    coords[:, 0] = np.where(coords[:, 0] >= centroid_x, coords[:, 0] + pass_offset, coords[:, 0] - pass_offset)
+    print(f"cords of vertexes after to offset {coords}")
     
 
 
