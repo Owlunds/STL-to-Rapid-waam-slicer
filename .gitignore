@@ -8,4 +8,7 @@ __pycache__/
 #Ignore example rapid code
 /FUsionshieldtest.txt
 
+/layer_plots
+*.png
+
 

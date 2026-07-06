@@ -11,7 +11,7 @@
     "build_plate_x": 0.0,
     "build_plate_y": 0.0,
     "center_part": false,
-    "num_outer_passes": 2,
+    "num_outer_passes": 1,
     "outer_pass_offset": 12.0,
     "lead_in_distance": 0.0,
     "lead_out_distance": 0.0,
