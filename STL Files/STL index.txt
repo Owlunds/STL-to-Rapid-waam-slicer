@@ -3,6 +3,9 @@
 STL Files\topo shelf v1.stl
     -topo shelf
 
+STL Files\leaning tower.stl
+    - 48 x 48 x 100 mm leaningtower
+
 STL Files\WAAM Test V1.stl
     -76.2 x 76.2 x 25.4 mm
     -cylinder

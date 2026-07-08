@@ -11,7 +11,7 @@ __pycache__/
 /layer_plots
 *.png
 
-/.venv
-*
+*layers.py
+
 
 

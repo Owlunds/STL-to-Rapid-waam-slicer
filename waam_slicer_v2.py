@@ -51,7 +51,7 @@ def import_setting ():
 
 #create mod file
 
-def create_clean_mod_file() -> str:
+def create_clean_mod_file(settings) -> str:
 
     file_name = input("Enter the RAPID module file name: ")
     
@@ -61,8 +61,8 @@ def create_clean_mod_file() -> str:
     file_path = os.path.abspath(file_name)
     
     rapid_header = (
-        "MODULE WAAM\n\n"
-        "PROC Main()\n"
+        f"MODULE {settings["ModuleName"]}\n\n"
+        f"PROC {settings["Name"]}()\n"
     )
     
     with open(file_path, "w") as file:
@@ -134,7 +134,7 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
             # MOVE TO START POSITION (NON-WELD)
 
             file.write(
-                f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height+10}],[1,0,0,0]],v100,fine,tWeldgun;\n"
+                f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height+50}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
             )
 
             file.write(f"    ! Outer contour {poly_index}\n")
@@ -145,11 +145,11 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
 
                 for pt in exterior_coords[1:]:
                     file.write(
-                        f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0]],v100,z10,tWeldgun;\n"
+                        f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                     )
 
                 file.write(
-                    f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height}],[1,0,0,0]],v100,fine,tWeldgun;\n"
+                    f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                 )
 
 
@@ -164,7 +164,7 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
                 p1 = pts[1]
 
                 file.write(
-                    f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun;\n"
+                    f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                 )
 
                 # ARC MIDDLE SEGMENTS
@@ -172,14 +172,17 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
                 for pt in pts[1:-1]:
                     
                     file.write(
-                        f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,z50,tWeldgun;\n"
+                        f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                     )
 
                 # ARC END
                 pend = pts[-1]
                 file.write(
-                    f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,z50,tWeldgun;\n"
+                    f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                 )
+                file.write(
+                    f"    MoveL [[{pend[0]:.3f},{pend[1]:.3f},{layer_height+50}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
+                )                
 
             # HOLES
             
@@ -194,7 +197,7 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
                 file.write(f"    ! Hole {hole_index} of poly {poly_index}\n")
 
                 file.write(
-                    f"    MoveL [[{hstart[0]:.3f},{hstart[1]:.3f},{layer_height+10}],[1,0,0,0]],v500,fine,tWeldgun;\n"
+                    f"    MoveL [[{hstart[0]:.3f},{hstart[1]:.3f},{layer_height+50}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v500,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                 )
                 
 
@@ -202,11 +205,11 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
 
                     for pt in hole_coords[1:]:
                         file.write(
-                            f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0]],v50,fine,tWeldgun;\n"
+                            f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v50,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                         )
 
                     file.write(
-                        f"    MoveL [[{hstart[0]:.3f},{hstart[1]:.3f},{layer_height}],[1,0,0,0]],v50,fine,tWeldgun;\n"
+                        f"    MoveL [[{hstart[0]:.3f},{hstart[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v50,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                     )
                 
                 else:
@@ -219,7 +222,7 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
                     p1 = pts[1]
 
                     file.write(
-                        f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun;\n"
+                        f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine, \WObj:={settings["work_object"]};\n"
                     )
 
                     # ARC MIDDLE SEGMENTS
@@ -227,13 +230,16 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
                     for pt in pts[1:-1]:
                         
                         file.write(
-                            f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,z50,tWeldgun;\n"
+                            f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                         )
 
                     # ARC END
                     pend = pts[-1]
                     file.write(
-                        f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,z50,tWeldgun;\n"
+                        f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
+                    )
+                    file.write(
+                        f"    MoveL [[{pend[0]:.3f},{pend[1]:.3f},{layer_height+50}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                     )
     
     return offset_polygon
@@ -284,19 +290,19 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
 
                 # Rapid move to safe height above start
                 file.write(
-                    f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height+10}],[1,0,0,0]],v100,fine,tWeldgun;\n"
+                    f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height+10}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                 )
 
                 if settings.get("test_mode", False):
                     # In test mode, just move along the infill path without welding
                     for pt in pts[1:]:
                         file.write(
-                            f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0]],v100,z10,tWeldgun;\n"
+                            f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                         )
 
                     # Return to start (optional)
                     file.write(
-                        f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height}],[1,0,0,0]],v100,fine,tWeldgun;\n"
+                        f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v100,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                     )
 
                 else:
@@ -304,20 +310,22 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
                     p0 = pts[0]
                     # Arc start
                     file.write(
-                        f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,fine,tWeldgun;\n"
+                        f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                     )
 
                     # Middle segments
                     for pt in pts[1:-1]:
                         file.write(
-                            f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,z50,tWeldgun;\n"
+                            f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
                         )
 
                     # Arc end
                     pend = pts[-1]
                     file.write(
-                        f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,z50,tWeldgun;\n"
+                        f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n"
+                        
                     )
+                    file.write(f"    WaitTime {settings["inter_pass_dwell"]};\n")
 
             # Multi-line geometries
             if isinstance(geom, LineString):
@@ -387,7 +395,7 @@ def visualize_clipped_lines(clipped_lines, polygon=None, polygon_exterior=None):
 
 mesh = get_stl_file_path()
 settings = import_setting()
-mod_file_path = create_clean_mod_file()
+mod_file_path = create_clean_mod_file(settings)
 sections= slice_mesh(mesh,settings["bead_height"])
 
 for row, section in enumerate(sections):
@@ -416,7 +424,11 @@ for row, section in enumerate(sections):
     
     infill_segments = infill_lines(offset_polygon,settings,mod_file_path,layer_height)
 
-   
+    with open(mod_file_path, "a") as file:
+        file.write(f"    WaitTime {settings["inter_layer_dwell"]};\n")
+
+with open(mod_file_path, "a") as file:
+        file.write(f"ENDPROC\nENDMODULE\n")
 
 
 
