@@ -24,6 +24,7 @@ def get_stl_file_path():
     if stl_file_path.is_file():
         print(f"Success: Found file at: {stl_file_path}")
     else:
+
         print("Error: The path provided does not point to a valid file.")
 
     mesh = trimesh.load_mesh(stl_file_path)
@@ -250,8 +251,13 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
 
     minx, miny, maxx, maxy = ext_coords.bounds
 
-    x_coords = np.arange(np.floor(minx), np.ceil(maxx) + offset_distance, offset_distance)
-    vertical_lines = [LineString([(x, miny), (x, maxy)]) for x in x_coords]
+    y_coords_left = np.arange((miny), (maxy/2), offset_distance)
+    y_coords_right = np.sort(np.arange((maxy), (maxy/2), -offset_distance))
+
+    vertical_lines_left = [LineString([(minx, y), (maxx, y)]) for y in y_coords_left]
+    vertical_lines_right = [LineString([(minx, y), (maxx, y)]) for y in y_coords_right]
+
+    vertical_lines = vertical_lines_left + vertical_lines_right
 
     clipped_lines = []
     for line in vertical_lines:
@@ -261,15 +267,58 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
             if not clipped.is_empty:
                 clipped_lines.append(clipped)
 
-    print (clipped_lines)
 
     
     for i, interior in enumerate(offset_polygon.interiors):
-        int_coords = list(interior.coords)
-        print(f"Interior Hole {i}:", int_coords)    
+        int_coords = Polygon(interior.coords)
+        print(f"Interior Hole {i}:", int_coords)   
+        for line in vertical_lines:
+            if line.intersects(int_coords):
+                clipped = line.intersection(int_coords)
+  
+            if not clipped.is_empty:
+                clipped_lines.append(clipped)
 
+    visualize_clipped_lines(clipped_lines, offset_polygon)
 
-    
+    return clipped_lines
+
+from shapely.geometry import LineString, MultiLineString, GeometryCollection
+
+def visualize_clipped_lines(clipped_lines, polygon=None):
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    # Draw polygon outline if supplied
+    if polygon is not None:
+        x, y = polygon.exterior.xy
+        ax.plot(x, y, 'k-', linewidth=2)
+
+        for hole in polygon.interiors:
+            hx, hy = hole.xy
+            ax.plot(hx, hy, 'r-', linewidth=2)
+
+    # Draw every clipped line
+    for geom in clipped_lines:
+
+        if isinstance(geom, LineString):
+            x, y = geom.xy
+            ax.plot(x, y, 'b')
+
+        elif isinstance(geom, MultiLineString):
+            for line in geom.geoms:
+                x, y = line.xy
+                ax.plot(x, y, 'b')
+
+        elif isinstance(geom, GeometryCollection):
+            for item in geom.geoms:
+                if isinstance(item, LineString):
+                    x, y = item.xy
+                    ax.plot(x, y, 'b')
+
+    ax.set_aspect('equal')
+    ax.grid(True)
+
+    plt.show()
 
 
 #runing the program
@@ -284,7 +333,7 @@ sections= slice_mesh(mesh,settings["bead_height"])
 for row, section in enumerate(sections):
     pass_num = 1
     with open(mod_file_path, "a") as file:
-        file.write(f"    !============== row #: {row + 1} ==============\n")
+        file.write(f"    !============== layer #: {row + 1} ==============\n")
 
     
     offset_num = settings["num_outer_passes"]
