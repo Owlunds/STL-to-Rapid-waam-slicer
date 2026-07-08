@@ -8,7 +8,8 @@ import shapely
 from shapely.ops import triangulate
 from pathlib import Path
 import matplotlib.pyplot as plt
-from shapely.geometry import JOIN_STYLE
+from shapely.geometry import JOIN_STYLE, Polygon, LineString
+from shapely.plotting import plot_polygon, plot_line
 import os
 
 #Import mesh from user input
@@ -238,163 +239,37 @@ def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
 
 # creates infill in the x direction
 
-def infill_lines(offset_polygon, settings, mod_file_path, layer_height):
-    """Generate horizontal (X-direction) infill line segments inside the given
-    offset_polygon. Lines are spaced by `settings['bead_width']` and clipped to
-    the polygon. Returns a list of Shapely LineString segments.
-    """
+def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
 
-    if offset_polygon is None or offset_polygon.is_empty:
-        return []
+    offset_distance = (settings["bead_width"])
 
-    spacing = float(settings.get("bead_width", 1.0))
+    offset_polygon = outside_offset_polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
 
-    minx, miny, maxx, maxy = offset_polygon.bounds
+    ext_coords = Polygon(offset_polygon.exterior.coords)
+    print("Exterior:", ext_coords)
 
-    # Start lines centered inside the polygon bounds
-    start_y = miny + spacing / 2.0
-    y_positions = np.arange(start_y, maxy, spacing)
+    minx, miny, maxx, maxy = ext_coords.bounds
 
-    infill_segments = []
+    x_coords = np.arange(np.floor(minx), np.ceil(maxx) + offset_distance, offset_distance)
+    vertical_lines = [LineString([(x, miny), (x, maxy)]) for x in x_coords]
 
-    for y in y_positions:
-        # create a long horizontal line that spans beyond polygon bounds
-        probe = shapely.geometry.LineString([(minx - 1.0, y), (maxx + 1.0, y)])
-        inter = probe.intersection(offset_polygon)
-        if inter.is_empty:
-            continue
+    clipped_lines = []
+    for line in vertical_lines:
+        if line.intersects(ext_coords):
+            clipped = line.intersection(ext_coords)
+  
+            if not clipped.is_empty:
+                clipped_lines.append(clipped)
 
-        # intersection may be a LineString, MultiLineString, or GeometryCollection
-        if isinstance(inter, shapely.geometry.LineString):
-            infill_segments.append(inter)
-        else:
-            # iterate sub-geometries and collect LineStrings
-            try:
-                for part in inter.geoms:
-                    if isinstance(part, shapely.geometry.LineString):
-                        infill_segments.append(part)
-            except Exception:
-                # if unexpected geometry, skip
-                continue
+    print (clipped_lines)
 
-    print(f"Generated {len(infill_segments)} infill segments (spacing={spacing})")
-
-    # Write RAPID commands similar to wall_generation
-    with open(mod_file_path, "a") as file:
-        file.write(f"\n    ! ===== INFILL =====\n")
-
-        for seg_index, seg in enumerate(infill_segments):
-            pts = list(seg.coords)
-            if len(pts) < 2:
-                continue
-
-            # Offset segment endpoints inward by half the bead width so the
-            # infill does not start exactly on the offset contour.
-            centroid_x = offset_polygon.centroid.x
-            pass_offset = spacing / 2.0
-
-            shifted_pts = []
-            for (x, y) in pts:
-                new_x = x + pass_offset if x < centroid_x else x - pass_offset
-                shifted_pts.append((new_x, y))
-
-            xs = [p[0] for p in shifted_pts]
-            # skip segments that became degenerate after offsetting
-            if max(xs) - min(xs) <= 1e-6:
-                continue
-
-            start = shifted_pts[0]
-
-            # Move to start position (non-weld)
-            file.write(
-                f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height+10}],[1,0,0,0]],v500,fine,tWeldgun;\n"
-            )
-
-            # TEST MODE: simple MoveL along segment
-            test_mode = settings.get("test_mode", settings.get("test_mode", False))
-
-            if test_mode:
-                for pt in shifted_pts[1:]:
-                    file.write(
-                        f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0]],v50,fine,tWeldgun;\n"
-                    )
-
-                # return to start
-                file.write(
-                    f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height}],[1,0,0,0]],v50,fine,tWeldgun;\n"
-                )
-
-            else:
-                # WELD MODE: Arc commands
-                p0 = shifted_pts[0]
-                # ensure there is a second point for ArcLStart formatting
-                p1 = shifted_pts[1] if len(shifted_pts) > 1 else shifted_pts[0]
-
-                file.write(
-                    f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,fine,tWeldgun;\n"
-                )
-
-                for pt in shifted_pts[1:-1]:
-                    file.write(
-                        f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,z50,tWeldgun;\n"
-                    )
-
-                pend = shifted_pts[-1]
-                file.write(
-                    f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,z50,tWeldgun;\n"
-                )
-
-    return infill_segments
+    
+    for i, interior in enumerate(offset_polygon.interiors):
+        int_coords = list(interior.coords)
+        print(f"Interior Hole {i}:", int_coords)    
 
 
-def plot_layer(original_polygon, offset_polygon, infill_segments, row, out_dir="layer_plots"):
-    """Create a 2D plot for a single layer showing the original polygon,
-    the offset polygon and infill segments. Saves PNG to `out_dir`.
-    """
-    out_path = Path(out_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
-
-    fig, ax = plt.subplots(figsize=(8, 8))
-
-    # plot original polygon exterior
-    try:
-        if original_polygon is not None and not original_polygon.is_empty:
-            x, y = original_polygon.exterior.xy
-            ax.plot(x, y, color="black", linewidth=1.5, label="original")
-
-            # holes
-            for interior in original_polygon.interiors:
-                ix, iy = interior.xy
-                ax.plot(ix, iy, color="red", linewidth=1.0, label="hole")
-
-        if offset_polygon is not None and not offset_polygon.is_empty:
-            if offset_polygon.geom_type == "Polygon":
-                polys = [offset_polygon]
-            else:
-                polys = list(offset_polygon.geoms)
-
-            for p in polys:
-                ex, ey = p.exterior.xy
-                ax.plot(ex, ey, color="blue", linewidth=1.2, label="offset")
-                for interior in p.interiors:
-                    ix, iy = interior.xy
-                    ax.plot(ix, iy, color="orange", linewidth=1.0)
-
-        # plot infill segments
-        for seg in infill_segments:
-            sx, sy = seg.xy
-            ax.plot(sx, sy, color="green", linewidth=1.0)
-
-    except Exception as e:
-        print(f"Warning: plotting failed for layer {row}: {e}")
-
-    ax.set_aspect("equal", adjustable="box")
-    ax.set_title(f"Layer {row+1}")
-    ax.axis("off")
-
-    filename = out_path / f"layer_{row+1}.png"
-    fig.savefig(filename, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    
 
 
 #runing the program
@@ -432,12 +307,8 @@ for row, section in enumerate(sections):
     
     infill_segments = infill_lines(offset_polygon,settings,mod_file_path,layer_height)
 
-    try:
-        original_polygon = sections[row].polygons_full[0]
-    except Exception:
-        original_polygon = None
+   
 
-    plot_layer(original_polygon, offset_polygon, infill_segments, row)
 
 
 
