@@ -263,12 +263,75 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
     for line in vertical_lines:
         if line.intersects(offset_polygon):
             clipped = line.intersection(offset_polygon)
-  
+
             if not clipped.is_empty:
                 clipped_lines.append(clipped)
 
+    # Write rapid (non-weld) moves and/or arc weld commands for each clipped line
+    with open(mod_file_path, "a") as file:
 
-    visualize_clipped_lines(clipped_lines, offset_polygon,outside_offset_polygon)
+        file.write(f"\n    ! ===== INFILL =====\n")
+
+        for geom in clipped_lines:
+
+            # Handle LineString directly
+            def handle_linestring(ls):
+                pts = list(ls.coords)
+                if len(pts) < 2:
+                    return
+
+                start = pts[0]
+
+                # Rapid move to safe height above start
+                file.write(
+                    f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height+10}],[1,0,0,0]],v100,fine,tWeldgun;\n"
+                )
+
+                if settings.get("test_mode", False):
+                    # In test mode, just move along the infill path without welding
+                    for pt in pts[1:]:
+                        file.write(
+                            f"    MoveL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0]],v100,z10,tWeldgun;\n"
+                        )
+
+                    # Return to start (optional)
+                    file.write(
+                        f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height}],[1,0,0,0]],v100,fine,tWeldgun;\n"
+                    )
+
+                else:
+                    # Weld mode: use ArcL commands similar to wall generation
+                    p0 = pts[0]
+                    # Arc start
+                    file.write(
+                        f"    ArcLStart [[{p0[0]:.3f},{p0[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,fine,tWeldgun;\n"
+                    )
+
+                    # Middle segments
+                    for pt in pts[1:-1]:
+                        file.write(
+                            f"    ArcL [[{pt[0]:.3f},{pt[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,z50,tWeldgun;\n"
+                        )
+
+                    # Arc end
+                    pend = pts[-1]
+                    file.write(
+                        f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[1,0,0,0],[0,0,0,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v10,seam1,Ni36_2_7_15_35_240\\Weave:=weave1,z50,tWeldgun;\n"
+                    )
+
+            # Multi-line geometries
+            if isinstance(geom, LineString):
+                handle_linestring(geom)
+
+            elif isinstance(geom, MultiLineString):
+                for line in geom.geoms:
+                    if isinstance(line, LineString):
+                        handle_linestring(line)
+
+            elif isinstance(geom, GeometryCollection):
+                for item in geom.geoms:
+                    if isinstance(item, LineString):
+                        handle_linestring(item)
 
     return clipped_lines
 
