@@ -261,35 +261,32 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
 
     clipped_lines = []
     for line in vertical_lines:
-        if line.intersects(ext_coords):
-            clipped = line.intersection(ext_coords)
+        if line.intersects(offset_polygon):
+            clipped = line.intersection(offset_polygon)
   
             if not clipped.is_empty:
                 clipped_lines.append(clipped)
 
 
-    
-    for i, interior in enumerate(offset_polygon.interiors):
-        int_coords = Polygon(interior.coords)
-        print(f"Interior Hole {i}:", int_coords)   
-        for line in vertical_lines:
-            if line.intersects(int_coords):
-                clipped = line.intersection(int_coords)
-  
-            if not clipped.is_empty:
-                clipped_lines.append(clipped)
-
-    visualize_clipped_lines(clipped_lines, offset_polygon)
+    visualize_clipped_lines(clipped_lines, offset_polygon,outside_offset_polygon)
 
     return clipped_lines
 
 from shapely.geometry import LineString, MultiLineString, GeometryCollection
 
-def visualize_clipped_lines(clipped_lines, polygon=None):
+def visualize_clipped_lines(clipped_lines, polygon=None, polygon_exterior=None):
     fig, ax = plt.subplots(figsize=(8, 8))
 
     # Draw polygon outline if supplied
     if polygon is not None:
+        x, y = polygon.exterior.xy
+        ax.plot(x, y, 'k-', linewidth=2)
+
+        for hole in polygon.interiors:
+            hx, hy = hole.xy
+            ax.plot(hx, hy, 'r-', linewidth=2)
+
+    if polygon_exterior is not None:
         x, y = polygon.exterior.xy
         ax.plot(x, y, 'k-', linewidth=2)
 
