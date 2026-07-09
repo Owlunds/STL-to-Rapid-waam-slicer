@@ -1,2 +1,30 @@
-In this test we will be uing the leaningtower (STL Files\leaning tower.stl)
+In this test we will be using the leaning tower (STL Files\leaning tower.stl)
+
+the print paramiters are 
+
+{
+    "bead_width": 12.0,
+    "bead_height": 2.0,
+    "travel_speed": 500,
+    "weld_speed": 10,
+    "inter_pass_dwell": 10.0,
+    "inter_layer_dwell": 60.0,
+    "work_object": "owen_test",
+    "build_plate_x": 125,
+    "build_plate_y": 200,
+    "num_outer_passes": 1,
+    "test_mode": false,
+    "Name": "test_1",
+    "Module": "testMotion"
+}
+
+and used test log/WAAM test 1 (leaning tower).txt code
+
+The test had mixed results a 
+
+print occoured and did not crash 
+
+two big things were leared 
+    -One, for the outside paramiters I need to move the start and end poit. in the image it can be seen that a large divit has formed where the arc ends
+    -Two, the bead width is way to samll so there are large air gaps within the print 
 
