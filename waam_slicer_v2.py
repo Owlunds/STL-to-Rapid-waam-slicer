@@ -8,7 +8,7 @@ import shapely
 from shapely.ops import triangulate
 from pathlib import Path
 import matplotlib.pyplot as plt
-from shapely.geometry import JOIN_STYLE, Polygon, LineString
+from shapely.geometry import JOIN_STYLE, Polygon, LineString, LinearRing, Point
 from shapely.plotting import plot_polygon, plot_line
 import os
 
@@ -129,14 +129,72 @@ def slice_mesh(mesh, layer_height):
 
 
 
+
+
+def offset_ring_start(ring_coords, offset_distance):
+
+    ring = LinearRing(ring_coords)
+    perimeter = ring.length
+
+    if perimeter == 0:
+        return list(ring.coords)
+
+    offset = offset_distance % perimeter
+    start_pt = ring.interpolate(offset)
+
+    coords = list(ring.coords[:-1])
+
+    tolerance = 1e-9
+
+    for i, c in enumerate(coords):
+        if Point(c).distance(start_pt) < tolerance:
+            new_coords = coords[i:] + coords[:i]
+            new_coords.append(new_coords[0])
+            return new_coords
+
+
+    cumulative = 0.0
+
+    for i in range(len(coords)):
+        p1 = Point(coords[i])
+        p2 = Point(coords[(i + 1) % len(coords)])
+        edge_length = p1.distance(p2)
+
+        if cumulative + edge_length >= offset - tolerance:
+            insert_index = i + 1
+            break
+
+        cumulative += edge_length
+
+    new_start = (start_pt.x, start_pt.y)
+
+    return ([new_start] + coords[insert_index:] + coords[:insert_index] + [new_start])
+
+
+def offset_polygon_start(polygon, offset_distance):
+
+
+    exterior = offset_ring_start(polygon.exterior.coords, offset_distance)
+
+    holes = [offset_ring_start(hole.coords, offset_distance) for hole in polygon.interiors]
+
+    return Polygon(exterior, holes)
+
+
+
+
 # follow the outside and inside contour of the section and generate RAPID code for the welding path
-def wall_generation(section, pass_num,offset_num, layer_number, settings, mod_file_path):
+def wall_generation(section, pass_num,offset_num, layer, settings, mod_file_path):
 
     polygon = section.polygons_full[0]
 
     offset_distance = (settings["bead_width"] / 2) + ((offset_num - 1) * settings["bead_width"])
 
     offset_polygon = polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
+
+    start_offset = (((layer * settings["num_outer_passes"]) + (pass_num - 1)) * settings["outerpath_start_offset"])
+
+    offset_polygon = offset_polygon_start(offset_polygon, start_offset)
 
     if offset_polygon.is_empty:
         return None

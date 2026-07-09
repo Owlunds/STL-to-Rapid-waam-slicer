@@ -1,3 +1,7 @@
+In this test we will be using the leaning tower (STL Files\Test 2 leaning tower.stl)
+
+the print paramiters are 
+
 {
     "bead_width": 6.0,
     "bead_height": 2.0,
@@ -14,3 +18,9 @@
     "Module": "testMotion",
     "outerpath_start_offset": 30.0
 }
+
+and used test log/WAAM test 2 (leaning tower).txt code
+
+Each time infil is printed the direction infill is layed needs to be switched x+ x- x+ ....
+
+Runing this code there was an error duing the first line of infill on layer 3 issue is being diognosed 
