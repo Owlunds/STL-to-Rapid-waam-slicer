@@ -89,36 +89,47 @@ def create_clean_mod_file(settings) -> str:
 #slice mesh intop layers
 
 def slice_mesh(mesh, layer_height):
-    
+
     bounds = mesh.bounds
-    number_layers = math.floor(bounds[1][2]/layer_height)
-    curent_layer = 0
 
+    number_layers = math.floor(bounds[1][2] / layer_height)
 
-    print (mesh.bounds)
-    z_extents = mesh.bounds[:, 2]
+    print(mesh.bounds)
 
+    # Store mesh translation
+    x_offset = bounds[0][0]
+    y_offset = bounds[0][1]
+
+    z_extents = bounds[:, 2]
     z_levels = np.arange(*z_extents, step=layer_height)
 
-    sections = mesh.section_multiplane(plane_origin=mesh.bounds[0], plane_normal=[0, 0, 1], heights=z_levels)
+    sections = mesh.section_multiplane(
+        plane_origin=mesh.bounds[0],
+        plane_normal=[0, 0, 1],
+        heights=z_levels
+    )
 
+    # Move each slice back to its original XY position
+    for section in sections:
+        if section is None:
+            continue
 
-    polygon = sections[1].polygons_full[0]
-    print(polygon)
-
-    combined = np.sum(sections)
-    combined.show()
-
-
+        section.apply_translation([x_offset, y_offset])
 
     print("####### BOUNDS #######")
-    print(f"x  min: {bounds[0][0]} max:{bounds[1][0]} \ny  min: {bounds[0][1]} max: {bounds[1][1]} \nz  min: {bounds[0][2]} max: {bounds[1][2]}")
+    print(f"x  min: {bounds[0][0]} max:{bounds[1][0]}")
+    print(f"y  min: {bounds[0][1]} max:{bounds[1][1]}")
+    print(f"z  min: {bounds[0][2]} max:{bounds[1][2]}")
+
     print("####### LAYERS #######")
-    print(f"layer height : {layer_height} \nTotal layers : {number_layers}")
+    print(f"layer height : {layer_height}")
+    print(f"Total layers : {number_layers}")
     print("######################")
 
 
-    return sections
+    combined = np.sum(sections) 
+    combined.show()
+    return sections  
 
 
 
