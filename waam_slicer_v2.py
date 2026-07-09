@@ -14,7 +14,7 @@ import os
 
 #Import mesh from user input
 
-def get_stl_file_path():
+def get_stl_file_path(settings):
 
     user_input = input("Please enter the full file path: ")
     clean_input = user_input.strip("'\"")
@@ -33,11 +33,26 @@ def get_stl_file_path():
 
     #set mesh orgin
 
-    bounds = mesh.bounds
-    new_origin = np.array([bounds[0][0]+10000, bounds[0][1], bounds[0][2]])
-    translation_matrix = trimesh.transformations.translation_matrix(-new_origin)
+    mesh_center = mesh.centroid  # Geometrical center (X, Y, Z)
+    min_z = mesh.bounds[0][2]     # Lowest Z point
+
+
+    target_x = settings["build_plate_x"] / 2
+    target_y = settings["build_plate_y"] / 2
+
+    move_vector = np.array([
+        target_x - mesh_center[0],
+        target_y - mesh_center[1],
+        0 
+    ])
+
+    print("Moving mesh by vector:", move_vector)
+
+    translation_matrix = trimesh.transformations.translation_matrix(move_vector)
     mesh.apply_transform(translation_matrix)
 
+    bounds =  mesh.bounds
+    print(bounds)
     return mesh
 
 #import settings
@@ -61,7 +76,7 @@ def create_clean_mod_file(settings) -> str:
     file_path = os.path.abspath(file_name)
     
     rapid_header = (
-        f"MODULE {settings["ModuleName"]}\n\n"
+        f"MODULE {settings["Module"]}\n\n"
         f"PROC {settings["Name"]}()\n"
     )
     
@@ -79,14 +94,21 @@ def slice_mesh(mesh, layer_height):
     number_layers = math.floor(bounds[1][2]/layer_height)
     curent_layer = 0
 
+
+    print (mesh.bounds)
     z_extents = mesh.bounds[:, 2]
 
     z_levels = np.arange(*z_extents, step=layer_height)
 
     sections = mesh.section_multiplane(plane_origin=mesh.bounds[0], plane_normal=[0, 0, 1], heights=z_levels)
 
+
+    polygon = sections[1].polygons_full[0]
+    print(polygon)
+
     combined = np.sum(sections)
     combined.show()
+
 
 
     print("####### BOUNDS #######")
@@ -102,9 +124,9 @@ def slice_mesh(mesh, layer_height):
 
 # follow the outside and inside contour of the section and generate RAPID code for the welding path
 def wall_generation(section, pass_num,offset_num, settings, mod_file_path):
-    print(f"pass number: {pass_num}")
 
     polygon = section.polygons_full[0]
+
     offset_distance = (settings["bead_width"] / 2) + ((offset_num - 1) * settings["bead_width"])
 
     offset_polygon = polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
@@ -253,7 +275,7 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
     offset_polygon = outside_offset_polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
 
     ext_coords = Polygon(offset_polygon.exterior.coords)
-    print("Exterior:", ext_coords)
+
 
     minx, miny, maxx, maxy = ext_coords.bounds
 
@@ -389,12 +411,16 @@ def visualize_clipped_lines(clipped_lines, polygon=None, polygon_exterior=None):
     plt.show()
 
 
-#runing the program
+#runing the program'
 
 
 
-mesh = get_stl_file_path()
+
+###############################################################################################
+
 settings = import_setting()
+mesh = get_stl_file_path(settings)
+
 mod_file_path = create_clean_mod_file(settings)
 sections= slice_mesh(mesh,settings["bead_height"])
 
@@ -414,7 +440,6 @@ for row, section in enumerate(sections):
             wall_generation(sections[row],pass_num,offset_num,settings,mod_file_path)
 
         
-        print(f"row: {row} \npass number : {pass_num} \noffset polygon: {offset_polygon}")
 
         with open(mod_file_path, "a") as file:
             file.write(f"    WaitTime {settings["inter_pass_dwell"]};\n")

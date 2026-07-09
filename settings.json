@@ -6,9 +6,10 @@
     "inter_pass_dwell": 5.0,
     "inter_layer_dwell": 10.0,
     "work_object": "owen_test",
-    "build_plate_x": 0.0,
-    "build_plate_y": 0.0,
+    "build_plate_x": 200,
+    "build_plate_y": 125,
     "num_outer_passes": 1,
     "test_mode": false,
-    "Name": "test_1"
+    "Name": "test_1",
+    "Module": "testMotion"
 }
