@@ -40,11 +40,7 @@ def get_stl_file_path(settings):
     target_x = settings["build_plate_x"] / 2
     target_y = settings["build_plate_y"] / 2
 
-    move_vector = np.array([
-        target_x - mesh_center[0],
-        target_y - mesh_center[1],
-        0 
-    ])
+    move_vector = np.array([target_x - mesh_center[0], target_y - mesh_center[1],0])
 
     print("Moving mesh by vector:", move_vector)
 
@@ -224,8 +220,6 @@ def wall_generation(section, pass_num,offset_num, layer, settings, mod_file_path
                 f"    MoveL [[{start[0]:.3f},{start[1]:.3f},{layer_height+50}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v{settings["travel_speed"]},fine,tWeldgun \WObj:={settings["work_object"]};\n"
             )
 
-            file.write(f"    ! Outer contour {poly_index}\n")
-
             # TEST MODE (no welding)
 
             if settings["test_mode"]:
@@ -319,7 +313,7 @@ def wall_generation(section, pass_num,offset_num, layer, settings, mod_file_path
 
 # creates infill in the x direction
 
-def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
+def infill_lines(outside_offset_polygon, settings,layer, mod_file_path, layer_height):
 
     offset_distance = (settings["bead_width"])
 
@@ -332,9 +326,22 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
 
     y_coords_left = np.arange((miny), (maxy/2), offset_distance)
     y_coords_right = np.sort(np.arange((maxy), (maxy/2), -offset_distance))
+    x_coords_left = np.arange((minx), (maxx/2), offset_distance)
+    x_coords_right = np.sort(np.arange((maxx), (maxx/2), -offset_distance))    
 
-    vertical_lines_left = [LineString([(minx, y), (maxx, y)]) for y in y_coords_left]
-    vertical_lines_right = [LineString([(minx, y), (maxx, y)]) for y in y_coords_right]
+    if (layer % 4) == 0:
+        vertical_lines_left = [LineString([(minx, y), (maxx, y)]) for y in y_coords_left]
+        vertical_lines_right = [LineString([(minx, y), (maxx, y)]) for y in y_coords_right]
+    elif (layer % 4) == 1:
+        vertical_lines_left = [LineString([(x, miny), (x, maxy)]) for x in x_coords_left]
+        vertical_lines_right = [LineString([(x, miny), (x, maxy)]) for x in x_coords_right]
+    elif (layer % 4) == 2:
+        vertical_lines_left = [LineString([(maxx, y), (minx, y)]) for y in y_coords_left]
+        vertical_lines_right = [LineString([(maxx, y), (minx, y)]) for y in y_coords_right]
+    else:
+        vertical_lines_left = [LineString([(x, maxy), (x, miny)]) for x in x_coords_left]
+        vertical_lines_right = [LineString([(x, maxy), (x, miny)]) for x in x_coords_right]
+
 
     vertical_lines = vertical_lines_left + vertical_lines_right
 
@@ -345,6 +352,7 @@ def infill_lines(outside_offset_polygon, settings, mod_file_path, layer_height):
 
             if not clipped.is_empty:
                 clipped_lines.append(clipped)
+    
 
     # Write rapid 
     with open(mod_file_path, "a") as file:
@@ -467,6 +475,7 @@ for row, section in enumerate(sections):
     pass_num = 1
     with open(mod_file_path, "a") as file:
         file.write(f"    !============== layer #: {row + 1} ==============\n")
+        file.write(f'   TPWrite "Weld Number:{row + 1}";')
 
     
     offset_num = settings["num_outer_passes"]
@@ -486,7 +495,7 @@ for row, section in enumerate(sections):
         pass_num += 1
         offset_num -= 1
     
-    infill_segments = infill_lines(offset_polygon,settings,mod_file_path,layer_height)
+    infill_segments = infill_lines(offset_polygon,settings,row,mod_file_path,layer_height)
 
     with open(mod_file_path, "a") as file:
         file.write(f"    WaitTime {settings["inter_layer_dwell"]};\n")

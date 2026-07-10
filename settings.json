@@ -1,16 +1,16 @@
 {
     "bead_width": 6.0,
-    "bead_height": 2.0,
-    "travel_speed": 500,
+    "bead_height": 2.3,
+    "travel_speed": 100,
     "weld_speed": 10,
-    "inter_pass_dwell": 10.0,
+    "inter_pass_dwell": 30.0,
     "inter_layer_dwell": 60.0,
     "work_object": "owen_test",
     "build_plate_x": 125,
-    "build_plate_y": 80,
-    "num_outer_passes": 1,
+    "build_plate_y": 200,
+    "num_outer_passes": 3,
     "test_mode": false,
-    "Name": "test_2",
+    "Name": "Wentz_sheild",
     "Module": "testMotion",
     "outerpath_start_offset": 30.0
 }
