@@ -69,7 +69,7 @@ def create_clean_mod_file(settings) -> str:
     if not file_name.endswith('.mod'):
         file_name += '.mod'
         
-    file_path = os.path.abspath(file_name)
+    file_path = os.path.abspath(os.path.join(settings["path_to_rapid_storage"], file_name))
     
     rapid_header = (
         f"MODULE {settings["Module"]}\n\n"

@@ -2,16 +2,17 @@
 __pycache__/
 *.pyc
 
-# Ignore .mod files only in the root directory
-
 *.mod
 
-#Ignore example rapid code
-/FUsionshieldtest.txt
+*FUsionshieldtest.txt
 
 *layers.py
 
 .venv/
+
+.mod files/
+
+
 
 
 

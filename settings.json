@@ -12,5 +12,6 @@
     "test_mode": false,
     "Name": "Wentz_sheild",
     "Module": "testMotion",
-    "outerpath_start_offset": 30.0
+    "outerpath_start_offset": 30.0,
+    "path_to_rapid_storage": "./mod files"
 }
