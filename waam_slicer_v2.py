@@ -182,6 +182,8 @@ def offset_polygon_start(polygon, offset_distance):
 # follow the outside and inside contour of the section and generate RAPID code for the welding path
 def wall_generation(section, pass_num,offset_num, layer, settings, mod_file_path):
 
+    layer_height = layer * settings["bead_height"]
+
     polygon = section.polygons_full[0]
 
     offset_distance = (settings["bead_width"] / 2) + ((offset_num - 1) * settings["bead_width"])
@@ -464,44 +466,46 @@ def visualize_clipped_lines(clipped_lines, polygon=None, polygon_exterior=None):
 
 
 ###############################################################################################
+def main ():
+    settings = import_setting()
+    mesh = get_stl_file_path(settings)
 
-settings = import_setting()
-mesh = get_stl_file_path(settings)
+    mod_file_path = create_clean_mod_file(settings)
+    sections= slice_mesh(mesh,settings["bead_height"])
 
-mod_file_path = create_clean_mod_file(settings)
-sections= slice_mesh(mesh,settings["bead_height"])
-
-for row, section in enumerate(sections):
-    pass_num = 1
-    with open(mod_file_path, "a") as file:
-        file.write(f"    !============== layer #: {row + 1} ==============\n")
-        file.write(f'   TPWrite "Weld Number:{row + 1}";')
-
-    
-    offset_num = settings["num_outer_passes"]
-    while 1 <= offset_num:
-        layer_height = row * settings["bead_height"]
-        if pass_num == 1:
-            offset_polygon = wall_generation(sections[row],pass_num,offset_num,row,settings,mod_file_path)
-        else:
-
-            wall_generation(sections[row],pass_num,offset_num,row,settings,mod_file_path)
+    for row, section in enumerate(sections):
+        pass_num = 1
+        with open(mod_file_path, "a") as file:
+            file.write(f"    !============== layer #: {row + 1} ==============\n")
+            file.write(f'   TPWrite "Weld Number:{row + 1}";')
 
         
+        offset_num = settings["num_outer_passes"]
+        while 1 <= offset_num:
+            layer_height = row * settings["bead_height"]
+            if pass_num == 1:
+                offset_polygon = wall_generation(sections[row],pass_num,offset_num,row,settings,mod_file_path)
+            else:
+
+                wall_generation(sections[row],pass_num,offset_num,row,settings,mod_file_path)
+
+            
+
+            with open(mod_file_path, "a") as file:
+                file.write(f"    WaitTime {settings["inter_pass_dwell"]};\n")
+            
+            pass_num += 1
+            offset_num -= 1
+        
+        infill_segments = infill_lines(offset_polygon,settings,row,mod_file_path,layer_height)
 
         with open(mod_file_path, "a") as file:
-            file.write(f"    WaitTime {settings["inter_pass_dwell"]};\n")
-        
-        pass_num += 1
-        offset_num -= 1
-    
-    infill_segments = infill_lines(offset_polygon,settings,row,mod_file_path,layer_height)
+            file.write(f"    WaitTime {settings["inter_layer_dwell"]};\n")
 
     with open(mod_file_path, "a") as file:
-        file.write(f"    WaitTime {settings["inter_layer_dwell"]};\n")
+            file.write(f"ENDPROC\nENDMODULE\n")
 
-with open(mod_file_path, "a") as file:
-        file.write(f"ENDPROC\nENDMODULE\n")
+main()
 
 
 

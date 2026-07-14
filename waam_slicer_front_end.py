@@ -1,0 +1,3 @@
+import waam_slicer_v2
+
+waam_slicer_v2.main
