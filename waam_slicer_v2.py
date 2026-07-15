@@ -16,7 +16,7 @@ import os
 
 def get_stl_file_path(settings):
 
-    user_input = input("Please enter the full file path: ")
+    user_input = settings["stl_file_path"]
     clean_input = user_input.strip("'\"")
     stl_file_path = Path(clean_input)
 
@@ -64,7 +64,7 @@ def import_setting ():
 
 def create_clean_mod_file(settings) -> str:
 
-    file_name = input("Enter the RAPID module file name: ")
+    file_name = settings["Name"]
     
     if not file_name.endswith('.mod'):
         file_name += '.mod'
@@ -505,7 +505,7 @@ def main ():
     with open(mod_file_path, "a") as file:
             file.write(f"ENDPROC\nENDMODULE\n")
 
-main()
+
 
 
 

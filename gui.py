@@ -7,7 +7,9 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QSpinBox,
     QCheckBox,
-    QLabel,
+    QLineEdit,
+    QFileDialog,
+    QHBoxLayout,
 )
 
 from settings_manager import SettingsManager
@@ -47,30 +49,94 @@ class MainWindow(QMainWindow):
 
         for key, value in self.settings.items():
 
+            # -----------------------------
+            # Boolean
+            # -----------------------------
             if isinstance(value, bool):
 
                 widget = QCheckBox()
                 widget.setChecked(value)
 
+                self.widgets[key] = widget
+                form.addRow(key, widget)
+
+            # -----------------------------
+            # Integer
+            # -----------------------------
             elif isinstance(value, int):
 
                 widget = QSpinBox()
-                widget.setRange(-100000, 100000)
+                widget.setRange(-1000000, 1000000)
                 widget.setValue(value)
 
+                self.widgets[key] = widget
+                form.addRow(key, widget)
+
+            # -----------------------------
+            # Float
+            # -----------------------------
             elif isinstance(value, float):
 
                 widget = QDoubleSpinBox()
                 widget.setDecimals(3)
-                widget.setRange(-100000, 100000)
+                widget.setRange(-1000000, 1000000)
                 widget.setValue(value)
 
-            else:
-                form.addRow(QLabel(key), QLabel(str(value)))
-                continue
+                self.widgets[key] = widget
+                form.addRow(key, widget)
 
-            self.widgets[key] = widget
-            form.addRow(key, widget)
+            # -----------------------------
+            # String
+            # -----------------------------
+            elif isinstance(value, str):
+
+                # RAPID output folder gets a Browse button
+                if key == self.settings["path_to_rapid_storage"]:
+
+                    line = QLineEdit(value)
+
+                    browse_button = QPushButton("Browse...")
+
+                    browse_button.clicked.connect(
+                        lambda checked=False, w=line: self.browse_output_folder(w)
+                    )
+
+                    container = QWidget()
+                    row = QHBoxLayout(container)
+                    row.setContentsMargins(0, 0, 0, 0)
+
+                    row.addWidget(line)
+                    row.addWidget(browse_button)
+
+                    self.widgets[key] = line
+                    form.addRow(key, container)
+
+                else:
+
+                    widget = QLineEdit(value)
+
+                    self.widgets[key] = widget
+                    form.addRow(key, widget)
+
+            # -----------------------------
+            # Anything else
+            # -----------------------------
+            else:
+
+                widget = QLineEdit(str(value))
+
+                self.widgets[key] = widget
+                form.addRow(key, widget)
+
+    def browse_output_folder(self, line_edit):
+
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Select RAPID Output Folder"
+        )
+
+        if folder:
+            line_edit.setText(folder)
 
     def save_settings(self):
 
@@ -85,8 +151,17 @@ class MainWindow(QMainWindow):
             elif isinstance(widget, QDoubleSpinBox):
                 self.settings[key] = widget.value()
 
+            elif isinstance(widget, QLineEdit):
+                self.settings[key] = widget.text()
+
         self.settings_manager.settings = self.settings
         self.settings_manager.save()
 
+        print("Settings saved.")
+
     def run_slicer(self):
-        print("Slice button pressed")
+
+        self.save_settings()
+
+        print("Slice STL button pressed.")
+        # Later this will call your waam_slicer_v2.py

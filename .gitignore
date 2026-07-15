@@ -6,11 +6,15 @@ __pycache__/
 
 *FUsionshieldtest.txt
 
+*.json
+
 *layers.py
 
 .venv/
 
 .mod files/
+
+
 
 
 
