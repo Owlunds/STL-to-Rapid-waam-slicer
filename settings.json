@@ -1,9 +1,9 @@
-{    
+{
     "build_plate_x": 125,
     "build_plate_y": 200,
     "bead_width": 6.0,
     "bead_height": 2.3,
-    "num_outer_passes": 3,    
+    "num_outer_passes": 3,
     "outerpath_start_offset": 30.0,
     "lead_in_distance": 0,
     "travel_speed": 100,
@@ -12,7 +12,7 @@
     "inter_layer_dwell": 60.0,
     "work_object": "owen_test",
     "test_mode": false,
-    "Name": "Wentz_sheild",
+    "Name": "test",
     "Module": "testMotion",
     "path_to_rapid_storage": "./mod files",
     "stl_file_path": "./STL Files/WAAM test v7.stl"

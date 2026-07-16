@@ -8,7 +8,7 @@ from gui import MainWindow
 app = QApplication(sys.argv)
 
 window = MainWindow()
-window.resize(500, 700)
+window.showMaximized()
 window.show()
 
 sys.exit(app.exec())

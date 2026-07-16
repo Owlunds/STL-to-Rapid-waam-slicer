@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from settings_manager import SettingsManager
 
+import waam_slicer_v2
 
 class MainWindow(QMainWindow):
 
@@ -49,9 +50,6 @@ class MainWindow(QMainWindow):
 
         for key, value in self.settings.items():
 
-            # -----------------------------
-            # Boolean
-            # -----------------------------
             if isinstance(value, bool):
 
                 widget = QCheckBox()
@@ -60,9 +58,6 @@ class MainWindow(QMainWindow):
                 self.widgets[key] = widget
                 form.addRow(key, widget)
 
-            # -----------------------------
-            # Integer
-            # -----------------------------
             elif isinstance(value, int):
 
                 widget = QSpinBox()
@@ -72,9 +67,6 @@ class MainWindow(QMainWindow):
                 self.widgets[key] = widget
                 form.addRow(key, widget)
 
-            # -----------------------------
-            # Float
-            # -----------------------------
             elif isinstance(value, float):
 
                 widget = QDoubleSpinBox()
@@ -85,12 +77,8 @@ class MainWindow(QMainWindow):
                 self.widgets[key] = widget
                 form.addRow(key, widget)
 
-            # -----------------------------
-            # String
-            # -----------------------------
             elif isinstance(value, str):
 
-                # RAPID output folder gets a Browse button
                 if key == self.settings["path_to_rapid_storage"]:
 
                     line = QLineEdit(value)
@@ -118,9 +106,6 @@ class MainWindow(QMainWindow):
                     self.widgets[key] = widget
                     form.addRow(key, widget)
 
-            # -----------------------------
-            # Anything else
-            # -----------------------------
             else:
 
                 widget = QLineEdit(str(value))
@@ -163,5 +148,6 @@ class MainWindow(QMainWindow):
 
         self.save_settings()
 
+        waam_slicer_v2.main()
+
         print("Slice STL button pressed.")
-        # Later this will call your waam_slicer_v2.py
