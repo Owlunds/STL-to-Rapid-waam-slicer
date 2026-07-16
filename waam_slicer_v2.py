@@ -1,64 +1,13 @@
-
-
-import json
 import numpy as np
-import trimesh
 import math
 import shapely
 from shapely.ops import triangulate
-from pathlib import Path
 import matplotlib.pyplot as plt
 from shapely.geometry import JOIN_STYLE, Polygon, LineString, LinearRing, Point
 from shapely.plotting import plot_polygon, plot_line
 import os
 
-#Import mesh from user input
 
-def get_stl_file_path(settings):
-
-    user_input = settings["stl_file_path"]
-    clean_input = user_input.strip("'\"")
-    stl_file_path = Path(clean_input)
-
-
-    if stl_file_path.is_file():
-        print(f"Success: Found file at: {stl_file_path}")
-    else:
-
-        print("Error: The path provided does not point to a valid file.")
-
-    mesh = trimesh.load_mesh(stl_file_path)
-
-    print(f"Mesh loaded successfully. Number of vertices: {len(mesh.vertices)}, Number of faces: {len(mesh.faces)}")
-
-    #set mesh orgin
-
-    mesh_center = mesh.centroid  
-    min_z = mesh.bounds[0][2]     
-
-
-    target_x = settings["build_plate_x"] / 2
-    target_y = settings["build_plate_y"] / 2
-
-    move_vector = np.array([target_x - mesh_center[0], target_y - mesh_center[1],0])
-
-    print("Moving mesh by vector:", move_vector)
-
-    translation_matrix = trimesh.transformations.translation_matrix(move_vector)
-    mesh.apply_transform(translation_matrix)
-
-    bounds =  mesh.bounds
-    print(bounds)
-    return mesh
-
-#import settings
-
-def import_setting ():
-
-    with open("settings.json", "r") as config_file:
-        settings = json.load(config_file)
-    
-    return settings
 
 #create mod file
 
@@ -467,8 +416,6 @@ def visualize_clipped_lines(clipped_lines, polygon=None, polygon_exterior=None):
 
 ###############################################################################################
 def main ():
-    settings = import_setting()
-    mesh = get_stl_file_path(settings)
 
     mod_file_path = create_clean_mod_file(settings)
     sections= slice_mesh(mesh,settings["bead_height"])
