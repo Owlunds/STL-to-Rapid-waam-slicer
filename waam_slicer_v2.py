@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import shapely
 from shapely.ops import triangulate
 import matplotlib.pyplot as plt
 from shapely.geometry import JOIN_STYLE, Polygon, LineString, LinearRing, Point
