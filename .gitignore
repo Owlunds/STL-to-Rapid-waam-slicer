@@ -14,8 +14,8 @@ __pycache__/
 
 .mod files/
 
-
-
+.toolpath_layers/
+*.png
 
 
 

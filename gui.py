@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 
 from settings_manager import SettingsManager
 
-import waam_slicer_v2
+import waam_slicer
 
 class MainWindow(QMainWindow):
 
@@ -148,6 +148,6 @@ class MainWindow(QMainWindow):
 
         self.save_settings()
 
-        waam_slicer_v2.main()
+        waam_slicer.main()
 
         print("Slice STL button pressed.")

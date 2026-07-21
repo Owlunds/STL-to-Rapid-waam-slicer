@@ -1,16 +1,6 @@
-import numpy as np
-import math
-from shapely.ops import triangulate
-import matplotlib.pyplot as plt
-from shapely.geometry import JOIN_STYLE, Polygon, LineString, LinearRing, Point
-from shapely.plotting import plot_polygon, plot_line
 import os
 
-
-
-#create mod file
-
-def create_clean_mod_file(settings) -> str:
+def create_clean_mod_file(settings):
 
     file_name = settings["Name"]
     
@@ -30,128 +20,8 @@ def create_clean_mod_file(settings) -> str:
     return file_path
 
 
-#slice mesh intop layers
 
-def slice_mesh(mesh, layer_height):
-
-    bounds = mesh.bounds
-
-    number_layers = math.floor(bounds[1][2] / layer_height)
-
-    print(mesh.bounds)
-
-    # Store mesh translation
-    x_offset = bounds[0][0]
-    y_offset = bounds[0][1]
-
-    z_extents = bounds[:, 2]
-    z_levels = np.arange(*z_extents, step=layer_height)
-
-    sections = mesh.section_multiplane(plane_origin=mesh.bounds[0], plane_normal=[0, 0, 1], heights=z_levels)
-
-
-    for section in sections:
-        if section is None:
-            continue
-
-        section.apply_translation([x_offset, y_offset])
-
-    print("####### BOUNDS #######")
-    print(f"x  min: {bounds[0][0]} max:{bounds[1][0]}")
-    print(f"y  min: {bounds[0][1]} max:{bounds[1][1]}")
-    print(f"z  min: {bounds[0][2]} max:{bounds[1][2]}")
-
-    print("####### LAYERS #######")
-    print(f"layer height : {layer_height}")
-    print(f"Total layers : {number_layers}")
-    print("######################")
-
-
-    combined = np.sum(sections) 
-    combined.show()
-    return sections  
-
-
-
-
-
-def offset_ring_start(ring_coords, offset_distance):
-
-    ring = LinearRing(ring_coords)
-    perimeter = ring.length
-
-    if perimeter == 0:
-        return list(ring.coords)
-
-    offset = offset_distance % perimeter
-    start_pt = ring.interpolate(offset)
-
-    coords = list(ring.coords[:-1])
-
-    tolerance = 1e-9
-
-    for i, c in enumerate(coords):
-        if Point(c).distance(start_pt) < tolerance:
-            new_coords = coords[i:] + coords[:i]
-            new_coords.append(new_coords[0])
-            return new_coords
-
-
-    cumulative = 0.0
-
-    for i in range(len(coords)):
-        p1 = Point(coords[i])
-        p2 = Point(coords[(i + 1) % len(coords)])
-        edge_length = p1.distance(p2)
-
-        if cumulative + edge_length >= offset - tolerance:
-            insert_index = i + 1
-            break
-
-        cumulative += edge_length
-
-    new_start = (start_pt.x, start_pt.y)
-
-    return ([new_start] + coords[insert_index:] + coords[:insert_index] + [new_start])
-
-
-def offset_polygon_start(polygon, offset_distance):
-
-
-    exterior = offset_ring_start(polygon.exterior.coords, offset_distance)
-
-    holes = [offset_ring_start(hole.coords, offset_distance) for hole in polygon.interiors]
-
-    return Polygon(exterior, holes)
-
-
-
-
-# follow the outside and inside contour of the section and generate RAPID code for the welding path
-def wall_generation(section, pass_num,offset_num, layer, settings, mod_file_path):
-
-    layer_height = layer * settings["bead_height"]
-
-    polygon = section.polygons_full[0]
-
-    offset_distance = (settings["bead_width"] / 2) + ((offset_num - 1) * settings["bead_width"])
-
-    offset_polygon = polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
-
-    start_offset = (((layer * settings["num_outer_passes"]) + (pass_num - 1)) * settings["outerpath_start_offset"])
-
-    offset_polygon = offset_polygon_start(offset_polygon, start_offset)
-
-    if offset_polygon.is_empty:
-        return None
-
-    polygons = []
-    if offset_polygon.geom_type == "Polygon":
-        polygons = [offset_polygon]
-    else:
-        polygons = list(offset_polygon.geoms)
-
-    with open(mod_file_path, "a") as file:
+'''    with open(mod_file_path, "a") as file:
 
         file.write(f"\n    ! ===== PASS {pass_num} =====\n")
 
@@ -258,53 +128,11 @@ def wall_generation(section, pass_num,offset_num, layer, settings, mod_file_path
                     pend = pts[-1]
                     file.write(f"    ArcLEnd [[{pend[0]:.3f},{pend[1]:.3f},{layer_height}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v{settings["weld_speed"]},seam1,Ni36_2_7_15_35_240\Weave:=weave1,fine,tWeldgun \WObj:={settings["work_object"]};\n")
                     file.write(f"    MoveL [[{pend[0]:.3f},{pend[1]:.3f},{layer_height+50}],[3.73171E-05,0.870747,-0.491731,7.48179E-05],[0,1,-2,0],[9E9,9E9,9E9,9E9,9E9,9E9]],v{settings["travel_speed"]},fine,tWeldgun \WObj:={settings["work_object"]};\n")
-    
-    return offset_polygon
-
-# creates infill in the x direction
-
-def infill_lines(outside_offset_polygon, settings,layer, mod_file_path, layer_height):
-
-    offset_distance = (settings["bead_width"])
-
-    offset_polygon = outside_offset_polygon.buffer(-offset_distance, join_style=JOIN_STYLE.mitre)
-
-    ext_coords = Polygon(offset_polygon.exterior.coords)
+    '''
 
 
-    minx, miny, maxx, maxy = ext_coords.bounds
 
-    y_coords_left = np.arange((miny), (maxy/2), offset_distance)
-    y_coords_right = np.sort(np.arange((maxy), (maxy/2), -offset_distance))
-    x_coords_left = np.arange((minx), (maxx/2), offset_distance)
-    x_coords_right = np.sort(np.arange((maxx), (maxx/2), -offset_distance))    
-
-    if (layer % 4) == 0:
-        vertical_lines_left = [LineString([(minx, y), (maxx, y)]) for y in y_coords_left]
-        vertical_lines_right = [LineString([(minx, y), (maxx, y)]) for y in y_coords_right]
-    elif (layer % 4) == 1:
-        vertical_lines_left = [LineString([(x, miny), (x, maxy)]) for x in x_coords_left]
-        vertical_lines_right = [LineString([(x, miny), (x, maxy)]) for x in x_coords_right]
-    elif (layer % 4) == 2:
-        vertical_lines_left = [LineString([(maxx, y), (minx, y)]) for y in y_coords_left]
-        vertical_lines_right = [LineString([(maxx, y), (minx, y)]) for y in y_coords_right]
-    else:
-        vertical_lines_left = [LineString([(x, maxy), (x, miny)]) for x in x_coords_left]
-        vertical_lines_right = [LineString([(x, maxy), (x, miny)]) for x in x_coords_right]
-
-
-    vertical_lines = vertical_lines_left + vertical_lines_right
-
-    clipped_lines = []
-    for line in vertical_lines:
-        if line.intersects(offset_polygon):
-            clipped = line.intersection(offset_polygon)
-
-            if not clipped.is_empty:
-                clipped_lines.append(clipped)
-    
-
-    # Write rapid 
+'''# Write rapid 
     with open(mod_file_path, "a") as file:
 
         file.write(f"\n    ! ===== INFILL =====\n")
@@ -360,63 +188,11 @@ def infill_lines(outside_offset_polygon, settings,layer, mod_file_path, layer_he
                     if isinstance(item, LineString):
                         handle_linestring(item)
 
-    return clipped_lines
-
-from shapely.geometry import LineString, MultiLineString, GeometryCollection
-
-def visualize_clipped_lines(clipped_lines, polygon=None, polygon_exterior=None):
-    fig, ax = plt.subplots(figsize=(8, 8))
-
-    # Draw polygon outline if supplied
-    if polygon is not None:
-        x, y = polygon.exterior.xy
-        ax.plot(x, y, 'k-', linewidth=2)
-
-        for hole in polygon.interiors:
-            hx, hy = hole.xy
-            ax.plot(hx, hy, 'r-', linewidth=2)
-
-    if polygon_exterior is not None:
-        x, y = polygon.exterior.xy
-        ax.plot(x, y, 'k-', linewidth=2)
-
-        for hole in polygon.interiors:
-            hx, hy = hole.xy
-            ax.plot(hx, hy, 'r-', linewidth=2)
-
-    # Draw every clipped line
-    for geom in clipped_lines:
-
-        if isinstance(geom, LineString):
-            x, y = geom.xy
-            ax.plot(x, y, 'b')
-
-        elif isinstance(geom, MultiLineString):
-            for line in geom.geoms:
-                x, y = line.xy
-                ax.plot(x, y, 'b')
-
-        elif isinstance(geom, GeometryCollection):
-            for item in geom.geoms:
-                if isinstance(item, LineString):
-                    x, y = item.xy
-                    ax.plot(x, y, 'b')
-
-    ax.set_aspect('equal')
-    ax.grid(True)
-
-    plt.show()
-
-
-#runing the program
 
 
 
-
-###############################################################################################
 def main ():
 
-    mod_file_path = create_clean_mod_file(settings)
     sections= slice_mesh(mesh,settings["bead_height"])
 
     for row, section in enumerate(sections):
@@ -450,9 +226,6 @@ def main ():
 
     with open(mod_file_path, "a") as file:
             file.write(f"ENDPROC\nENDMODULE\n")
-
-
-
-
+'''
 
 
